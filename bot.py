@@ -1,17 +1,15 @@
 import os
+import time
 import requests
 
-# خواندن اطلاعات از محیط امن سرور
+# خواندن اطلاعات از محیط امن گیت‌هاب
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 CHANNEL_USERNAME = os.environ.get("CHANNEL_USERNAME")
 
 
 def generate_and_send_zen():
-  print("در حال ارتباط با هوش مصنوعی برای دریافت متن ذن...")
-
   url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={GEMINI_API_KEY}"
-
   headers = {"Content-Type": "application/json"}
   data = {
       "contents": [{
@@ -27,20 +25,35 @@ def generate_and_send_zen():
       }]
   }
 
-  response = requests.post(url, headers=headers, json=data, timeout=30)
-  if response.status_code != 200:
-    print("خطا از طرف هوش مصنوعی:", response.text)
+  post_text = None
+
+  # ۳ بار تلاش خودکار در صورت بروز خطای شلوغی سرور (۵۰۳)
+  for attempt in range(1, 4):
+    print(f"تلاش شماره {attempt} برای دریافت متن از هوش مصنوعی...")
+    response = requests.post(url, headers=headers, json=data, timeout=30)
+
+    if response.status_code == 200:
+      result_json = response.json()
+      post_text = (
+          result_json.get("candidates", [{}])[0]
+          .get("content", {})
+          .get("parts", [{}])[0]
+          .get("text", "")
+      )
+      break
+    else:
+      print(f"خطا در تلاش {attempt}:", response.text)
+      if attempt < 3:
+        print("سرور موقتاً شلوغ است. ۵ ثانیه صبر می‌کنیم و دوباره تلاش می‌کنیم...")
+        time.sleep(5)
+
+  if not post_text:
+    print("خطا: پس از ۳ تلاش متوالی، ارتباط با هوش مصنوعی برقرار نشد.")
     return
 
-  result_json = response.json()
-  post_text = (
-      result_json.get("candidates", [{}])[0]
-      .get("content", {})
-      .get("parts", [{}])[0]
-      .get("text", "")
-  )
+  print("متن ذن با موفقیت تولید شد. در حال ارسال به کانال تلگرام...")
 
-  # ارسال به تلگرام
+  # ارسال پیام به کانال تلگرام
   tg_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
   payload = {"chat_id": CHANNEL_USERNAME, "text": post_text}
 
