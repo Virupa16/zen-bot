@@ -28,11 +28,11 @@ def generate_and_send_zen():
 
   post_text = None
 
-  # ۳ بار تلاش با مدل جدید
-  for attempt in range(1, 4):
+  # ۵ بار تلاش خودکار با تایم‌اوت ۶۰ ثانیه‌ای
+  for attempt in range(1, 6):
     print(f"تلاش شماره {attempt} برای دریافت متن از هوش مصنوعی...")
     try:
-      response = requests.post(url, headers=headers, json=data, timeout=30)
+      response = requests.post(url, headers=headers, json=data, timeout=60)
 
       if response.status_code == 200:
         result_json = response.json()
@@ -46,15 +46,19 @@ def generate_and_send_zen():
           break
       else:
         print(f"خطا در تلاش {attempt}:", response.text)
+    except requests.exceptions.Timeout:
+      print(
+          f"اخطار در تلاش {attempt}: پاسخ سرور بیش از حد طول کشید (Timeout)."
+      )
     except Exception as e:
       print(f"خطای شبکه در تلاش {attempt}:", e)
 
-    if attempt < 3:
-      print("۵ ثانیه صبر می‌کنیم و دوباره تلاش می‌کنیم...")
-      time.sleep(5)
+    if attempt < 5:
+      print("۱۰ ثانیه صبر می‌کنیم و دوباره تلاش می‌کنیم...")
+      time.sleep(10)
 
   if not post_text:
-    print("خطا: ارتباط با هوش مصنوعی برقرار نشد.")
+    print("خطا: پس از ۵ تلاش متوالی، پاسخ مناسبی از هوش مصنوعی دریافت نشد.")
     return
 
   print("متن ذن با موفقیت تولید شد. در حال ارسال به کانال تلگرام...")
