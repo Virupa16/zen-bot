@@ -27,28 +27,35 @@ def generate_and_send_zen():
 
   post_text = None
 
-  # ۳ بار تلاش خودکار در صورت بروز خطای شلوغی سرور (۵۰۳)
-  for attempt in range(1, 4):
+  # ۵ بار تلاش خودکار با مکث ۱۰ ثانیه‌ای برای عبور از ترافیک سنگین گوگل
+  for attempt in range(1, 6):
     print(f"تلاش شماره {attempt} برای دریافت متن از هوش مصنوعی...")
-    response = requests.post(url, headers=headers, json=data, timeout=30)
+    try:
+      response = requests.post(url, headers=headers, json=data, timeout=30)
 
-    if response.status_code == 200:
-      result_json = response.json()
-      post_text = (
-          result_json.get("candidates", [{}])[0]
-          .get("content", {})
-          .get("parts", [{}])[0]
-          .get("text", "")
+      if response.status_code == 200:
+        result_json = response.json()
+        post_text = (
+            result_json.get("candidates", [{}])[0]
+            .get("content", {})
+            .get("parts", [{}])[0]
+            .get("text", "")
+        )
+        if post_text:
+          break
+      else:
+        print(f"خطا در تلاش {attempt}:", response.text)
+    except Exception as e:
+      print(f"خطای شبکه در تلاش {attempt}:", e)
+
+    if attempt < 5:
+      print(
+          "سرور موقتاً شلوغ است. ۱۰ ثانیه صبر می‌کنیم و دوباره تلاش می‌کنیم..."
       )
-      break
-    else:
-      print(f"خطا در تلاش {attempt}:", response.text)
-      if attempt < 3:
-        print("سرور موقتاً شلوغ است. ۵ ثانیه صبر می‌کنیم و دوباره تلاش می‌کنیم...")
-        time.sleep(5)
+      time.sleep(10)
 
   if not post_text:
-    print("خطا: پس از ۳ تلاش متوالی، ارتباط با هوش مصنوعی برقرار نشد.")
+    print("خطا: پس از ۵ تلاش متوالی، ارتباط پایدار با هوش مصنوعی برقرار نشد.")
     return
 
   print("متن ذن با موفقیت تولید شد. در حال ارسال به کانال تلگرام...")
