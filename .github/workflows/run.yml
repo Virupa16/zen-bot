@@ -1,0 +1,29 @@
+name: Daily Zen Bot
+
+on:
+  schedule:
+    # زمان‌بندی به وقت UTC (مثلاً هر روز ساعت ۵:۳۰ بامداد به وقت تهران)
+    - cron: '30 2 * * *' 
+  workflow_dispatch: # اجازه اجرای دستی با یک کلیک
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run bot script
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHANNEL_USERNAME: ${{ secrets.CHANNEL_USERNAME }}
+        run: python bot.py
